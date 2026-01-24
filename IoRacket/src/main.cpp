@@ -99,21 +99,6 @@ void setup() {
 }
 
 void loop() {
-  // // check if sensor connected
-  // byte error, address;
-  // int nDevices = 0;
-  // for(address = 1; address < 127; address++ ) {
-  //   Wire.beginTransmission(address);
-  //   error = Wire.endTransmission();
-  //   if (error == 0) {
-  //     Serial.print("发现设备！地址: 0x");
-  //     Serial.println(address, HEX);
-  //     nDevices++;
-  //   }
-  // }
-  // if (nDevices == 0) Serial.println("未发现任何 I2C 设备\n");
-  // delay(5000);
-
   // read sensor data
   sensors_event_t a, g, temp;
   mpu.getEvent(&a, &g, &temp);
@@ -135,7 +120,7 @@ void loop() {
     pCharacteristic -> setValue((uint8_t*)data, sizeof(data));
     pCharacteristic -> notify(); 
 
-    // 采样率控制在 1Hz
-    delay(1000); 
+    // 采样率控制在 200Hz
+    delay(5); 
   }
 }
