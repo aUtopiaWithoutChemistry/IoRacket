@@ -32,6 +32,13 @@ Adafruit_MPU6050 mpu;
 // flag for device connection status
 bool deviceConnected = false;
 
+// badminton data structure
+struct __attribute__((packed)) BadmintonData {
+  uint32_t timestamp;
+  float acc[3];
+  float gyro[3];
+};
+
 // BLE server callbacks to handle device connection and disconnection events
 class MyServerCallbacks: public BLEServerCallbacks {
   void onConnect(BLEServer* pServer) {
@@ -116,11 +123,21 @@ void loop() {
     data[4] = g.gyro.y;
     data[5] = g.gyro.z;
 
+    // pack data into badminton data structure
+    BadmintonData bdData;
+    bdData.timestamp = millis();
+    bdData.acc[0] = data[0];
+    bdData.acc[1] = data[1];
+    bdData.acc[2] = data[2];
+    bdData.gyro[0] = data[3];
+    bdData.gyro[1] = data[4];
+    bdData.gyro[2] = data[5];
+
     // send data via bluetooth
-    pCharacteristic -> setValue((uint8_t*)data, sizeof(data));
+    pCharacteristic -> setValue((uint8_t*)&bdData, sizeof(bdData));
     pCharacteristic -> notify(); 
 
-    // 采样率控制在 200Hz
+    // 200 Hz data sending rate
     delay(5); 
   }
 }
