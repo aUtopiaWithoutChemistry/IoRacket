@@ -15,42 +15,34 @@ SERVICE_UUID =          "db87fb0a-cf98-4a2f-889b-3078ebaf19fb"
 CHARACTERISTIC_UUID =   "253113ce-9a58-4847-b67d-f94b719837dc"
 
 async def main():
-    print("正在搜索 Zifan 的羽毛球拍...")
-
-    # 2. 定义过滤逻辑：检查广播数据中的 UUID 列表
+    # Scan for the device advertising the specific service UUID
     def filter_func(device, advertising_data):
-        # 打印一下扫描到的设备，方便调试
         print(f"发现设备: {device.name}, UUIDs: {advertising_data.service_uuids}")
         return SERVICE_UUID in [uuid.lower() for uuid in advertising_data.service_uuids]
 
-    # 3. 使用过滤器寻找设备
+    # find the device
     device = await BleakScanner.find_device_by_filter(filter_func, timeout=10.0)
 
     if not device:
-        print("超时：未能找到匹配该 Service UUID 的设备。")
-        print("请检查：1. ESP32 是否在运行？ 2. UUID 是否填错？")
+        print("failed to find the device.")
         return
-
-    print(f"匹配成功！设备地址: {device.address}")
+    print(f"Success! Device address: {device.address}")
 
     async with BleakClient(device) as client:
         print(f"已连接！正在通过 {device.address} 接收数据...")
 
-        # 3. 定义“翻译官”：当收到字节流时，怎么处理它
+        # define notification handler
         def notification_handler(sender, data):
-            # '6f' 的意思是：把这串字节按“6个小端序浮点数”来解析
-            # 这对应了你 C++ 里的 float mockData[6]
+            # data is a bytearray, unpack it into 6 floats
             values = struct.unpack('<6f', data) 
             
-            acc = values[:3]  # 前三个是加速度
-            gyro = values[3:] # 后三个是角速度
-            print(f"收到数据 -> 加速度: {acc[0]:.2f}, {acc[1]:.2f}, {acc[2]:.2f}")
-            print(f"          角速度: {gyro[0]:.2f}, {gyro[1]:.2f}, {gyro[2]:.2f}")
+            acc = values[:3]  # first three are acceleration
+            gyro = values[3:] # last three are angular velocity
 
-        # 4. 告诉 ESP32：开启数据推送模式 (这会激活 BLE2902)
+        # turn on notifications on the ESP32 characteristic
         await client.start_notify(CHARACTERISTIC_UUID, notification_handler)
         
-        # 让程序运行 10 秒钟，观察数据
+        # keep the program running to receive notifications
         await asyncio.sleep(10)
         await client.stop_notify(CHARACTERISTIC_UUID)
 
