@@ -85,7 +85,7 @@ void setup() {
   pAdvertising -> setScanResponse(true);
 
   // set advertising parameters
-  pAdvertising -> addServiceUUID(SERVICE_UUID); // 必须有这一行，UUID 才会出现在广播包里
+  pAdvertising -> addServiceUUID(SERVICE_UUID); // add service UUID to advertising packet
   pAdvertising -> setScanResponse(true);
 
   pServer -> getAdvertising() -> start();
