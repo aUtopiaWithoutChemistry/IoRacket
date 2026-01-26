@@ -12,6 +12,9 @@
 #include <BLEUtils.h>
 #include <BLE2902.h>
 
+// include badminton data structure
+#include "BadmintonData.h"
+
 // for sensor
 #include <Adafruit_MPU6050.h>
 #include <Adafruit_Sensor.h>
@@ -31,13 +34,6 @@ Adafruit_MPU6050 mpu;
 
 // flag for device connection status
 bool deviceConnected = false;
-
-// badminton data structure
-struct __attribute__((packed)) BadmintonData {
-  uint32_t timestamp;
-  float acc[3];
-  float gyro[3];
-};
 
 // BLE server callbacks to handle device connection and disconnection events
 class MyServerCallbacks: public BLEServerCallbacks {
