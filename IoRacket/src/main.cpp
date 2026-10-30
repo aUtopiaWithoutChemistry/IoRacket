@@ -12,8 +12,10 @@
 #include <BLEUtils.h>
 #include <BLE2902.h>
 
-// include badminton data structure
+// include custom headers
 #include "BadmintonData.h"
+#include "BLEManager.h"
+#include "SensorManager.h"
 
 // for sensor
 #include <Adafruit_MPU6050.h>
