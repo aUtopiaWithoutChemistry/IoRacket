@@ -1,50 +1,32 @@
 /**
- * This class is to handle BLE service initialization 
- * and data sending.
- * 
+ * This class is to handle the BLE link: advertising, the data characteristic (v2 packets,
+ * notify) and the control characteristic (commands written by the host).
+ *
  * @author Zifan Zuo
- * @date 2026-Jan-26
+ * @date 2026-Oct-29
  */
 
 #pragma once
 
 #include <Arduino.h>
-#include <BLEDevice.h>
-#include <BLEServer.h>
-#include <BLEUtils.h>
-#include <BLE2902.h>
-#include <BadmintonData.h>
 
 class BLEManager {
-private:
-    BLECharacteristic* pCharacteristic;
-    BLEAdvertising* pAdvertising;
-    BLEServer* pServer;
-    BLEService* pService;
-    BLEDevice* pDevice;
-    BadmintonData bdData;
-
 public:
-    /**
-     * Setup BLE service and start advertising
-     */
-    BLEManager();
+    /** Start BLE, create the service and start (slow) advertising. */
+    void begin(const char* deviceName);
 
-    /**
-     * Destructor
-     */
-    ~BLEManager();
+    /** True while a host is connected and has turned notifications on for the data characteristic. */
+    bool isSubscribed() const;
 
-    /**
-     * Initialize BLE service
-     */
-    void initBLE();
+    /** How many samples fit in one notification at the current MTU (at most maxSamples). */
+    int samplesPerPacket(int headerBytes, int sampleBytes, int maxSamples) const;
 
-    /**
-     * Send data via BLE notification
-     * 
-     * @param data Pointer to the data to send
-     * @param length Length of the data
-     */
-    void sendData(uint8_t* data, size_t length);
+    /** Send one packet as a notification. */
+    void sendPacket(uint8_t* data, size_t length);
+
+    /** True once the host has written the "reboot into download mode" command. */
+    bool bootloaderRequested() const;
+
+    /** Notifications the BLE stack refused since the last call (e.g. its send queue was full). */
+    uint32_t takeNotifyErrors();
 };
