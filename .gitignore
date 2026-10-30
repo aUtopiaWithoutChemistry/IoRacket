@@ -53,3 +53,6 @@ __pycache__/
 *.gcode
 *.bgcode
 hardware/_archive/
+
+# coding agents
+CLAUDE.md
