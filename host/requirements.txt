@@ -1,3 +1,4 @@
 bleak
 pyqtgraph
 numpy
+PySide6

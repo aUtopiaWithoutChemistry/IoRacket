@@ -5,10 +5,10 @@
 #include <Adafruit_MPU6050.h>
 
 #ifndef IMU_SDA
-#define IMU_SDA 8
+#define IMU_SDA 5   // XIAO D4
 #endif
 #ifndef IMU_SCL
-#define IMU_SCL 9
+#define IMU_SCL 6   // XIAO D5
 #endif
 
 Adafruit_MPU6050 mpu;

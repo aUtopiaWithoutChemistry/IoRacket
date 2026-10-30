@@ -22,7 +22,12 @@
 #include <Adafruit_Sensor.h>
 #include <Wire.h>
 
-#define LED_PIN 2
+#ifndef IMU_SDA
+#define IMU_SDA 5   // XIAO D4
+#endif
+#ifndef IMU_SCL
+#define IMU_SCL 6   // XIAO D5
+#endif
 
 // uuid for bluetooth
 #define SERVICE_UUID        "db87fb0a-cf98-4a2f-889b-3078ebaf19fb"
@@ -54,7 +59,7 @@ class MyServerCallbacks: public BLEServerCallbacks {
 void setup() {
   // 1. Setup esp32 device
   Serial.begin(115200);
-  Wire.begin(21, 22);
+  Wire.begin(IMU_SDA, IMU_SCL);
   Serial.println("Initializing...");
 
   // 2. initialize BLE device

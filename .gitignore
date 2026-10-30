@@ -44,3 +44,12 @@
 *.vscode*
 *.code-workspace*
 *.csv
+
+# --- IoRacket ---
+.pio/
+venv/
+.venv/
+__pycache__/
+*.gcode
+*.bgcode
+hardware/_archive/
