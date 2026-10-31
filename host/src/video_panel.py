@@ -23,7 +23,7 @@ class VideoPanel(QtWidgets.QWidget):
         self.video = QVideoWidget()
         self.player.setVideoOutput(self.video)
 
-        self.choose_btn = QtWidgets.QPushButton("Link video… / 选择视频…", clicked=self.choose_requested.emit)
+        self.choose_btn = QtWidgets.QPushButton("Link video… / 选择视频…", clicked=lambda: self.choose_requested.emit())
         self.play_btn = QtWidgets.QPushButton("Play / 播放", clicked=self.toggle_play)
         prev_btn = QtWidgets.QPushButton("◀ 1 frame / 帧", clicked=lambda: self.step(-1))
         next_btn = QtWidgets.QPushButton("1 frame / 帧 ▶", clicked=lambda: self.step(1))
