@@ -3,16 +3,17 @@ from datetime import datetime
 from pathlib import Path
 
 import numpy as np
-import pyqtgraph as pg
 from PySide6 import QtCore, QtWidgets
 
-from src.data_parser import parse_packet
+from src.data_parser import INT16_MAX, INT16_MIN, parse_packet
+from src.recording import finalize_recording
+from src.plots import SixAxisPlot
+from src.replay import ReplayWindow
 
 RATE_HZ = 1000            # nominal sample rate; packets don't carry the rate yet
 WINDOW_S = 5              # seconds shown in the plots
 BUFFER_LEN = WINDOW_S * RATE_HZ
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
-AXIS_PENS = ["r", "g", "b"]
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -33,6 +34,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self._t = np.full(BUFFER_LEN, np.nan)
         self._acc = np.full((BUFFER_LEN, 3), np.nan)
         self._gyro = np.full((BUFFER_LEN, 3), np.nan)
+        self._sat = np.zeros((BUFFER_LEN, 6), dtype=bool)
+        self._replay_windows = []
 
         self._reset_stats()
         self._record_file = None
@@ -49,32 +52,24 @@ class MainWindow(QtWidgets.QMainWindow):
         self.disconnect_btn = QtWidgets.QPushButton("断开", clicked=self.ble.disconnect_device)
         self.sim_check = QtWidgets.QCheckBox("模拟设备", toggled=self.on_sim_toggled)
         self.record_btn = QtWidgets.QPushButton("开始录制", clicked=self.toggle_recording)
+        self.autoscale_check = QtWidgets.QCheckBox("自动缩放")
+        self.replay_btn = QtWidgets.QPushButton("回放录音…", clicked=self.open_replay)
         self.conn_label = QtWidgets.QLabel("未连接")
 
         controls = QtWidgets.QHBoxLayout()
-        for w in (self.connect_btn, self.disconnect_btn, self.sim_check, self.record_btn):
+        for w in (self.connect_btn, self.disconnect_btn, self.sim_check, self.record_btn, self.autoscale_check):
             controls.addWidget(w)
         controls.addSpacing(20)
         controls.addWidget(self.conn_label, stretch=1)
+        controls.addWidget(self.replay_btn)
 
-        plots = pg.GraphicsLayoutWidget()
-        self.acc_plot = plots.addPlot(row=0, col=0, title="加速度")
-        self.gyro_plot = plots.addPlot(row=1, col=0, title="角速度")
-        self.gyro_plot.setXLink(self.acc_plot)
-        self.acc_plot.setLabel("left", "g")
-        self.gyro_plot.setLabel("left", "°/s")
-        self.gyro_plot.setLabel("bottom", "时间", units="s")
-        self.acc_curves, self.gyro_curves = [], []
-        for plot, curves in ((self.acc_plot, self.acc_curves), (self.gyro_plot, self.gyro_curves)):
-            plot.showGrid(x=True, y=True, alpha=0.3)
-            plot.addLegend(offset=(10, 10))
-            for axis, pen in zip("xyz", AXIS_PENS):
-                curves.append(plot.plot(pen=pen, name=axis, connect="finite"))
+        self.plots = SixAxisPlot()
+        self.autoscale_check.toggled.connect(self.plots.set_autoscale)
 
         central = QtWidgets.QWidget()
         layout = QtWidgets.QVBoxLayout(central)
         layout.addLayout(controls)
-        layout.addWidget(plots, stretch=1)
+        layout.addWidget(self.plots, stretch=1)
         self.setCentralWidget(central)
 
         self.stats_label = QtWidgets.QLabel()
@@ -123,6 +118,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self._t = np.concatenate([self._t[n:], t])
         self._acc = np.concatenate([self._acc[n:], acc])
         self._gyro = np.concatenate([self._gyro[n:], gyro])
+        sat = (pkt.samples == INT16_MAX) | (pkt.samples == INT16_MIN)
+        self._sat = np.concatenate([self._sat[n:], sat])
 
         if self._record_file is not None:
             self._write_rows(pkt)
@@ -132,10 +129,8 @@ class MainWindow(QtWidgets.QMainWindow):
     def update_plots(self):
         if np.isnan(self._t[-1]):
             return
-        for i in range(3):
-            self.acc_curves[i].setData(self._t, self._acc[:, i])
-            self.gyro_curves[i].setData(self._t, self._gyro[:, i])
-        self.acc_plot.setXRange(self._t[-1] - WINDOW_S, self._t[-1], padding=0)
+        self.plots.set_data(self._t, self._acc, self._gyro, self._sat)
+        self.plots.set_x_range(self._t[-1] - WINDOW_S, self._t[-1])
 
     def _reset_stats(self):
         self._next_index = None
@@ -170,10 +165,18 @@ class MainWindow(QtWidgets.QMainWindow):
             self.record_btn.setText("停止录制")
             self.record_label.setText(f"录制中：{path.name}")
         else:
-            self._record_file.close()
-            self._record_file = None
-            self.record_btn.setText("开始录制")
-            self.record_label.setText(f"已保存 {self._record_rows} 行 → {self._record_path}")
+            self._stop_recording(ask_name=True)
+
+    def _stop_recording(self, ask_name: bool):
+        self._record_file.close()
+        self._record_file = None
+        self.record_btn.setText("开始录制")
+        path = self._record_path
+        if ask_name:
+            dialog = SaveDialog(self, path)
+            if dialog.exec() == QtWidgets.QDialog.Accepted:
+                path = finalize_recording(path, dialog.name_edit.text(), dialog.note_edit.toPlainText())
+        self.record_label.setText(f"已保存 {self._record_rows} 行 → {path}")
 
     def _write_rows(self, pkt):
         ranges = (pkt.accel_range_g, pkt.gyro_range_dps)
@@ -191,9 +194,40 @@ class MainWindow(QtWidgets.QMainWindow):
         np.savetxt(self._record_file, np.column_stack([index, pkt.samples]), fmt="%d", delimiter=",")
         self._record_rows += len(pkt.samples)
 
+    def open_replay(self):
+        path, _ = QtWidgets.QFileDialog.getOpenFileName(self, "选择录音", str(DATA_DIR), "CSV (*.csv)")
+        if path:
+            window = ReplayWindow(path)
+            window.show()
+            self._replay_windows.append(window)  # keep a reference so it is not garbage-collected
+
     def closeEvent(self, event):
         if self._record_file is not None:
-            self.toggle_recording()
+            self._stop_recording(ask_name=False)   # closing the app: keep the date/time name
         self.sim.stop()
         self.ble.shutdown()
         super().closeEvent(event)
+
+
+class SaveDialog(QtWidgets.QDialog):
+    """Shown when recording stops: name the file and add a note (written into the CSV header)."""
+
+    def __init__(self, parent, path):
+        super().__init__(parent)
+        self.setWindowTitle("保存录音")
+        self.name_edit = QtWidgets.QLineEdit()
+        self.name_edit.setPlaceholderText("例如 smash_practice(留空则保留时间名)")
+        self.note_edit = QtWidgets.QPlainTextEdit()
+        self.note_edit.setPlaceholderText("例如 杀球练习,室内,右手")
+        self.note_edit.setFixedHeight(70)
+        stamp = path.stem.removeprefix("racket_")
+        form = QtWidgets.QFormLayout(self)
+        form.addRow(QtWidgets.QLabel(f"文件名会保存为 <名字>_{stamp}.csv"))
+        form.addRow("名字", self.name_edit)
+        form.addRow("备注", self.note_edit)
+        buttons = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Save | QtWidgets.QDialogButtonBox.Cancel)
+        buttons.button(QtWidgets.QDialogButtonBox.Save).setText("保存")
+        buttons.button(QtWidgets.QDialogButtonBox.Cancel).setText("保留时间名")
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        form.addRow(buttons)
