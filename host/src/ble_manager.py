@@ -46,24 +46,24 @@ class BLEManager(QtCore.QObject):
     async def _connect(self):
         if self._client is not None and self._client.is_connected:
             return
-        self.status_changed.emit("正在扫描...")
+        self.status_changed.emit("Scanning… · 正在扫描…")
         device = await BleakScanner.find_device_by_name(DEVICE_NAME, timeout=10)
         if device is None:
-            self.status_changed.emit("没有找到球拍（是否已上电、正在广播？）")
+            self.status_changed.emit("Racket not found (powered on and advertising?) · 没有找到球拍（是否已上电、正在广播？）")
             return
 
-        self.status_changed.emit("正在连接...")
+        self.status_changed.emit("Connecting… · 正在连接…")
         client = BleakClient(device, disconnected_callback=self._on_disconnected)
         try:
             await client.connect()
             await client.start_notify(DATA_UUID, self._on_notify)
         except Exception as e:
-            self.status_changed.emit(f"连接失败：{e}")
+            self.status_changed.emit(f"Connection failed · 连接失败: {e}")
             await client.disconnect()
             return
 
         self._client = client
-        self.status_changed.emit(f"已连接（MTU {client.mtu_size}）")
+        self.status_changed.emit(f"Connected · 已连接 (MTU {client.mtu_size})")
         self.connection_changed.emit(True)
 
     async def _disconnect(self):
@@ -75,5 +75,5 @@ class BLEManager(QtCore.QObject):
 
     def _on_disconnected(self, _client):
         self._client = None
-        self.status_changed.emit("已断开")
+        self.status_changed.emit("Disconnected · 已断开")
         self.connection_changed.emit(False)

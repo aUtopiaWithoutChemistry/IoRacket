@@ -22,7 +22,7 @@ A smart badminton racket: a 3D-printed end cap puts an ESP32-S3 and a 6-axis IMU
 3. Play your strokes.
 4. **Tap the frame once more**, then stop the video.
 
-In the replay window: "选择视频…" links the video; step to each tap with the frame buttons and press "这一帧 = 开始敲击" / "这一帧 = 结束敲击". The two taps give both the time offset and the IMU's true sample rate.
+In the replay window, **Link video…** attaches the video (it is copied next to the CSV). Step to each tap with the frame buttons and press **This frame = start tap** / **This frame = end tap**; the sync dialog then opens pre-filled. The two taps give both the time offset and the IMU's true sample rate.
 
 ## First finding: a full swing clips the MPU6050
 In the first saturation test, every hard swing exceeded the gyro range (+/-2000 deg/s per axis) for 30-80 ms, and the hardest ones also hit +/-16 g. Fitting the clipped peaks suggests roughly 3000-3500 deg/s and 20-23 g (rough, likely higher). The next hardware revision needs a +/-4000 deg/s, >= +/-32 g IMU; until then, peak values of hard swings are lower bounds (marked "≥" in the app).
@@ -51,7 +51,7 @@ pio run -e xiao -t upload                              # main firmware
 cd host
 python3 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
-python main.py        # "模拟设备" runs without the racket
+python main.py        # tick "Simulator" to try it without the racket
 ```
 
 ## Roadmap

@@ -37,13 +37,13 @@ class SimulatedDevice(QtCore.QObject):
         self._index = 0
         self._t0 = time.monotonic()
         self._timer.start()
-        self.status_changed.emit("模拟设备运行中")
+        self.status_changed.emit("Simulator running · 模拟设备运行中")
         self.connection_changed.emit(True)
 
     def stop(self):
         if self._timer.isActive():
             self._timer.stop()
-            self.status_changed.emit("模拟设备已停止")
+            self.status_changed.emit("Simulator stopped · 模拟设备已停止")
             self.connection_changed.emit(False)
 
     def _tick(self):

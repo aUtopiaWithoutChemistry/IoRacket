@@ -21,7 +21,7 @@ class MainWindow(QtWidgets.QMainWindow):
         super().__init__()
         self.ble = ble
         self.sim = simulator
-        self.setWindowTitle("IoRacket 实时数据")
+        self.setWindowTitle("IoRacket — Live / 实时数据")
         self.resize(1100, 750)
 
         self._build_ui()
@@ -48,13 +48,13 @@ class MainWindow(QtWidgets.QMainWindow):
     # ---------- UI ----------
 
     def _build_ui(self):
-        self.connect_btn = QtWidgets.QPushButton("连接球拍", clicked=self.ble.connect_device)
-        self.disconnect_btn = QtWidgets.QPushButton("断开", clicked=self.ble.disconnect_device)
-        self.sim_check = QtWidgets.QCheckBox("模拟设备", toggled=self.on_sim_toggled)
-        self.record_btn = QtWidgets.QPushButton("开始录制", clicked=self.toggle_recording)
-        self.autoscale_check = QtWidgets.QCheckBox("自动缩放")
-        self.replay_btn = QtWidgets.QPushButton("回放录音…", clicked=self.open_replay)
-        self.conn_label = QtWidgets.QLabel("未连接")
+        self.connect_btn = QtWidgets.QPushButton("Connect / 连接球拍", clicked=self.ble.connect_device)
+        self.disconnect_btn = QtWidgets.QPushButton("Disconnect / 断开", clicked=self.ble.disconnect_device)
+        self.sim_check = QtWidgets.QCheckBox("Simulator / 模拟设备", toggled=self.on_sim_toggled)
+        self.record_btn = QtWidgets.QPushButton("Record / 开始录制", clicked=self.toggle_recording)
+        self.autoscale_check = QtWidgets.QCheckBox("Autoscale / 自动缩放")
+        self.replay_btn = QtWidgets.QPushButton("Replay… / 回放录音…", clicked=self.open_replay)
+        self.conn_label = QtWidgets.QLabel("Not connected · 未连接")
 
         controls = QtWidgets.QHBoxLayout()
         for w in (self.connect_btn, self.disconnect_btn, self.sim_check, self.record_btn, self.autoscale_check):
@@ -146,10 +146,10 @@ class MainWindow(QtWidgets.QMainWindow):
         rate = self._window_samples / seconds
         kbps = self._window_bytes / seconds / 1000
         self._window_samples = self._window_bytes = 0
-        text = (f"采样率 {rate:5.0f} Hz   |   丢包 {self._lost_packets}（{self._lost_samples} 个样本）"
-                f"   |   饱和样本 {self._saturated}   |   {kbps:5.1f} kB/s")
+        text = (f"Rate / 采样率 {rate:5.0f} Hz   |   Lost / 丢包 {self._lost_packets} ({self._lost_samples} samples / 样本)"
+                f"   |   Saturated / 饱和样本 {self._saturated}   |   {kbps:5.1f} kB/s")
         if self._bad_packets:
-            text += f"   |   格式错误包 {self._bad_packets}"
+            text += f"   |   Bad packets / 格式错误包 {self._bad_packets}"
         self.stats_label.setText(text)
 
     # ---------- recording ----------
@@ -162,21 +162,21 @@ class MainWindow(QtWidgets.QMainWindow):
             self._record_path = path
             self._record_rows = 0
             self._record_ranges = None   # header is written with the first packet
-            self.record_btn.setText("停止录制")
-            self.record_label.setText(f"录制中：{path.name}")
+            self.record_btn.setText("Stop / 停止录制")
+            self.record_label.setText(f"Recording · 录制中: {path.name}")
         else:
             self._stop_recording(ask_name=True)
 
     def _stop_recording(self, ask_name: bool):
         self._record_file.close()
         self._record_file = None
-        self.record_btn.setText("开始录制")
+        self.record_btn.setText("Record / 开始录制")
         path = self._record_path
         if ask_name:
             dialog = SaveDialog(self, path)
             if dialog.exec() == QtWidgets.QDialog.Accepted:
                 path = finalize_recording(path, dialog.name_edit.text(), dialog.note_edit.toPlainText())
-        self.record_label.setText(f"已保存 {self._record_rows} 行 → {path}")
+        self.record_label.setText(f"Saved · 已保存 {self._record_rows} rows / 行 → {path}")
 
     def _write_rows(self, pkt):
         ranges = (pkt.accel_range_g, pkt.gyro_range_dps)
@@ -195,7 +195,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self._record_rows += len(pkt.samples)
 
     def open_replay(self):
-        path, _ = QtWidgets.QFileDialog.getOpenFileName(self, "选择录音", str(DATA_DIR), "CSV (*.csv)")
+        path, _ = QtWidgets.QFileDialog.getOpenFileName(self, "Open recording / 选择录音", str(DATA_DIR), "CSV (*.csv)")
         if path:
             window = ReplayWindow(path)
             window.show()
@@ -214,20 +214,21 @@ class SaveDialog(QtWidgets.QDialog):
 
     def __init__(self, parent, path):
         super().__init__(parent)
-        self.setWindowTitle("保存录音")
+        self.setWindowTitle("Save recording / 保存录音")
+        self.setMinimumWidth(560)
         self.name_edit = QtWidgets.QLineEdit()
-        self.name_edit.setPlaceholderText("例如 smash_practice(留空则保留时间名)")
+        self.name_edit.setPlaceholderText("e.g. smash_practice (empty = keep the date/time name / 留空则保留时间名)")
         self.note_edit = QtWidgets.QPlainTextEdit()
-        self.note_edit.setPlaceholderText("例如 杀球练习,室内,右手")
+        self.note_edit.setPlaceholderText("e.g. smash practice, indoor, right hand / 例如 杀球练习,室内,右手")
         self.note_edit.setFixedHeight(70)
         stamp = path.stem.removeprefix("racket_")
         form = QtWidgets.QFormLayout(self)
-        form.addRow(QtWidgets.QLabel(f"文件名会保存为 <名字>_{stamp}.csv"))
-        form.addRow("名字", self.name_edit)
-        form.addRow("备注", self.note_edit)
+        form.addRow(QtWidgets.QLabel(f"Saved as <name>_{stamp}.csv\n文件名会保存为 <名字>_{stamp}.csv"))
+        form.addRow("Name / 名字", self.name_edit)
+        form.addRow("Note / 备注", self.note_edit)
         buttons = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Save | QtWidgets.QDialogButtonBox.Cancel)
-        buttons.button(QtWidgets.QDialogButtonBox.Save).setText("保存")
-        buttons.button(QtWidgets.QDialogButtonBox.Cancel).setText("保留时间名")
+        buttons.button(QtWidgets.QDialogButtonBox.Save).setText("Save / 保存")
+        buttons.button(QtWidgets.QDialogButtonBox.Cancel).setText("Keep date/time name / 保留时间名")
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         form.addRow(buttons)

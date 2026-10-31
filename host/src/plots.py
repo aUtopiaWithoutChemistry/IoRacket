@@ -21,7 +21,7 @@ class SixAxisPlot(pg.GraphicsLayoutWidget):
         self.cursors = []                               # vertical line at the video position, one per plot
         limit_pen = pg.mkPen("#c0392b", width=1, style=QtCore.Qt.DashLine)
 
-        for col, (name, unit) in enumerate((("加速度", "g"), ("角速度", "°/s"))):
+        for col, (name, unit) in enumerate((("Accel / 加速度", "g"), ("Gyro / 角速度", "°/s"))):
             for axis in range(3):
                 p = self.addPlot(row=axis, col=col)
                 p.setTitle(f"{name} {'XYZ'[axis]}", size="9pt")
@@ -30,7 +30,7 @@ class SixAxisPlot(pg.GraphicsLayoutWidget):
                 if axis < 2:
                     p.getAxis("bottom").setStyle(showValues=False)
                 else:
-                    p.setLabel("bottom", "时间", units="s")
+                    p.setLabel("bottom", "Time / 时间", units="s")
                 if self.plots[0][0] is not None:
                     p.setXLink(self.plots[0][0])
                 for sign in (1, -1):
