@@ -46,6 +46,7 @@
 *.csv
 
 # --- IoRacket ---
+host/data/
 .pio/
 venv/
 .venv/
