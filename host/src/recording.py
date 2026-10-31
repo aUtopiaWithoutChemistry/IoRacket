@@ -2,6 +2,7 @@
 the linked video (a copy stored next to the CSV) and the video sync."""
 import json
 import re
+import warnings
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -58,7 +59,13 @@ def load_recording(path) -> Recording:
                 note = line[len("# note="):].strip()
             if line.startswith("sample_index"):
                 break
-    data = np.loadtxt(path, delimiter=",", comments="#", skiprows=header_rows, dtype=np.int64, ndmin=2)
+    if path.stat().st_size == 0 or header_rows == 0:
+        raise ValueError("no data")
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")  # loadtxt warns on a file with a header but no rows
+        data = np.loadtxt(path, delimiter=",", comments="#", skiprows=header_rows, dtype=np.int64, ndmin=2)
+    if len(data) == 0:
+        raise ValueError("no data")
     return Recording(path, data[:, 0], data[:, 1:7], accel_range, gyro_range, note)
 
 

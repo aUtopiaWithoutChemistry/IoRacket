@@ -172,6 +172,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self._record_file = None
         self.record_btn.setText("Record / 开始录制")
         path = self._record_path
+        if self._record_rows == 0:
+            path.unlink(missing_ok=True)   # stopped before any data arrived: nothing worth keeping
+            self.record_label.setText("No data recorded, file discarded · 没有录到数据,文件已删除")
+            return
         if ask_name:
             dialog = SaveDialog(self, path)
             if dialog.exec() == QtWidgets.QDialog.Accepted:
@@ -197,7 +201,12 @@ class MainWindow(QtWidgets.QMainWindow):
     def open_replay(self):
         path, _ = QtWidgets.QFileDialog.getOpenFileName(self, "Open recording / 选择录音", str(DATA_DIR), "CSV (*.csv)")
         if path:
-            window = ReplayWindow(path)
+            try:
+                window = ReplayWindow(path)
+            except ValueError:
+                QtWidgets.QMessageBox.information(self, "Replay / 回放",
+                                                  "This recording has no data.\n这段录音里没有数据。")
+                return
             window.show()
             self._replay_windows.append(window)  # keep a reference so it is not garbage-collected
 

@@ -12,6 +12,7 @@ HEAD_DISTANCE_M = 0.635   # IMU to racket head centre (measured by the owner)
 
 SWING_THRESHOLD_DPS = 500  # |gyro| above this counts as swinging
 SWING_MERGE_GAP_MS = 300   # active stretches closer than this belong to the same swing
+TAP_GROUP_MS = 300         # impact spikes closer than this are one tap (bounces)
 
 
 @dataclass
@@ -74,20 +75,34 @@ def find_swings(rec: Recording, bias: np.ndarray) -> list:
 
 
 def find_taps(rec: Recording) -> list:
-    """Rows of sync taps: a short, sharp acceleration spike while the racket is otherwise not swinging."""
+    """Rows of sync taps: a short, sharp acceleration spike while the racket is otherwise not swinging.
+
+    A tap often comes as 2 spikes ~200 ms apart (the frame bounces off the palm), so spikes closer than
+    TAP_GROUP_MS form one tap whose time is the first spike, i.e. the first contact seen in the video.
+    The impact itself jolts the gyro for a few ms (seen: 450-490 dps), so "the racket is otherwise still"
+    is judged on the 300 ms before and after the group, skipping 50 ms next to it."""
     acc_mag = np.linalg.norm(rec.acc, axis=1)
     gyro_mag = np.linalg.norm(rec.gyro, axis=1)
-    taps = []
+    spikes = []   # (start, end, peak row) of short spikes
     for s, e in runs(np.abs(acc_mag - 1) > 1.5, merge_gap=20):
-        if e - s > 40:                      # longer than 40 ms: a movement, not a tap
-            continue
-        # The impact itself jolts the gyro for a few ms (seen: 450-490 dps on real taps), so judge
-        # "the racket is otherwise still" on the 300 ms before and after, skipping 50 ms around the spike.
-        before = gyro_mag[max(0, s - 300):max(0, s - 50)]
-        after = gyro_mag[e + 50:e + 300]
+        if e - s <= 40:                     # longer than 40 ms: a movement, not an impact
+            spikes.append((s, e, s + int(np.argmax(acc_mag[s:e + 1]))))
+
+    groups = []
+    for sp in spikes:
+        if groups and sp[0] - groups[-1][-1][1] < TAP_GROUP_MS:
+            groups[-1].append(sp)
+        else:
+            groups.append([sp])
+
+    taps = []
+    for g in groups:
+        first, last = g[0][0], g[-1][1]
+        before = gyro_mag[max(0, first - 300):max(0, first - 50)]
+        after = gyro_mag[last + 50:last + 300]
         if max(before.max(initial=0), after.max(initial=0)) > 300:   # part of a swing, not a deliberate tap
             continue
-        peak = s + int(np.argmax(acc_mag[s:e + 1]))
-        if acc_mag[peak] - 1 > 2.5:
-            taps.append(peak)
+        strong = [p for _, _, p in g if acc_mag[p] - 1 > 2.5]
+        if strong:
+            taps.append(strong[0])
     return taps
