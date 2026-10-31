@@ -34,6 +34,8 @@ Print settings used: Prusa MK4, PLA+, 0.20 mm STRUCTURAL, 3 perimeters, 20% infi
 - The IMU's pin row sits over a solder-relief groove; mounting holes go over the locating pins.
 
 ## Wiring
+<img src="../docs/images/wiring.svg" width="560" alt="Wiring diagram: XIAO 3V3/GND/D4/D5 to MPU6050 VCC/GND/SDA/SCL">
+
 | IMU | XIAO | Wire |
 |---|---|---|
 | VCC | 3V3 | red |

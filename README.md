@@ -4,6 +4,10 @@ A smart badminton racket: a 3D-printed end cap puts an ESP32-S3 and a 6-axis IMU
 
 **Status:** v1 working end to end: racket -> BLE -> live plots -> recording -> replay synced with video.
 
+<p align="center">
+  <img src="docs/images/assembled.jpg" width="560" alt="Assembled end cap: XIAO ESP32-S3, MPU6050 and LiPo on the 3D-printed sled">
+</p>
+
 <!-- Demo GIF goes here: screen recording of the replay window (video on the left, synced 6-axis data on the right). -->
 
 ## What v1 does
@@ -32,6 +36,20 @@ In the first saturation test, every hard swing exceeded the gyro range (+/-2000 
 - Custom parametric end cap (Autodesk Fusion), printed in PLA+, ~5 g
 - **Attach the U.FL antenna** to the XIAO; without it the BLE link drops within a second.
 - Details, measurements and wiring: [`hardware/README.md`](hardware/README.md)
+
+### Build log
+<table>
+  <tr>
+    <td width="33%"><img src="docs/images/prototype-breadboard.jpg" alt="Breadboard prototype"><br><sub><b>1. Breadboard prototype.</b> The first version used a full-size ESP32 DevKit, too big for a racket grip.</sub></td>
+    <td width="33%"><img src="docs/images/printed-endcap.jpg" alt="Printed end cap"><br><sub><b>2. Parametric end cap.</b> Modeled in Fusion, printed on a Prusa MK4 in PLA+ (~5 g, ~35 min).</sub></td>
+    <td width="33%"><img src="docs/images/fit-test-v1.jpg" alt="First fit test in the grip"><br><sub><b>3. Fit iterations.</b> v1 was too loose; three versions and a 4-size fit gauge to get the sled snug in the hollow grip.</sub></td>
+  </tr>
+  <tr>
+    <td width="33%"><img src="docs/images/soldering-bat-pads.jpg" alt="Soldering the battery pads"><br><sub><b>4. Battery on the rear pads.</b> Extension leads soldered to the XIAO's BAT+/BAT- pads before the LiPo is attached.</sub></td>
+    <td width="33%"><img src="docs/images/wired-before-assembly.jpg" alt="IMU wired to the XIAO"><br><sub><b>5. IMU wiring.</b> Four color-coded wires: 3V3, GND, SDA (D4), SCL (D5).</sub></td>
+    <td width="33%"><img src="docs/images/assembled.jpg" alt="Assembled"><br><sub><b>6. Assembled.</b> MCU, IMU and battery on the sled, USB-C through the cap for charging and flashing.</sub></td>
+  </tr>
+</table>
 
 ## Repository layout
 | Folder | What |
