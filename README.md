@@ -5,10 +5,9 @@ A smart badminton racket: a 3D-printed end cap puts an ESP32-S3 and a 6-axis IMU
 **Status:** v1 working end to end: racket -> BLE -> live plots -> recording -> replay synced with video.
 
 <p align="center">
-  <img src="docs/images/assembled.jpg" width="560" alt="Assembled end cap: XIAO ESP32-S3, MPU6050 and LiPo on the 3D-printed sled">
+  <img src="docs/images/demo.gif" width="860" alt="Replay window: slow-motion video of a swing on the left, synced 6-axis IMU data on the right">
+  <br><sub>Replay at 1/8 speed: phone video (faces blurred) synced to the 1 kHz IMU stream. The yellow cursor follows the video; the spikes are the racket swing and shuttle impact.</sub>
 </p>
-
-<!-- Demo GIF goes here: screen recording of the replay window (video on the left, synced 6-axis data on the right). -->
 
 ## What v1 does
 - **Firmware:** reads the IMU through its hardware FIFO at **1000 Hz** (+/-16 g, +/-2000 deg/s, raw int16) and streams it over BLE in batched packets (18 samples, 222 B). Tested with 0 lost samples on USB power and on battery. Sampling starts when the app subscribes and the IMU sleeps otherwise.
