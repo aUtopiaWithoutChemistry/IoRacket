@@ -12,7 +12,7 @@ HEAD_DISTANCE_M = 0.635   # IMU to racket head centre (measured by the owner)
 
 SWING_THRESHOLD_DPS = 500  # |gyro| above this counts as swinging
 SWING_MERGE_GAP_MS = 300   # active stretches closer than this belong to the same swing
-TAP_GROUP_MS = 300         # impact spikes closer than this are one tap (bounces)
+TAP_GROUP_MS = 300         # impact peaks closer than this are one tap (bounces)
 
 
 @dataclass
@@ -75,34 +75,37 @@ def find_swings(rec: Recording, bias: np.ndarray) -> list:
 
 
 def find_taps(rec: Recording) -> list:
-    """Rows of sync taps: a short, sharp acceleration spike while the racket is otherwise not swinging.
+    """Rows of sync taps: the frame hits the palm, so |a| spikes and the racket's rotation stops at once.
 
-    A tap often comes as 2 spikes ~200 ms apart (the frame bounces off the palm), so spikes closer than
-    TAP_GROUP_MS form one tap whose time is the first spike, i.e. the first contact seen in the video.
-    The impact itself jolts the gyro for a few ms (seen: 450-490 dps), so "the racket is otherwise still"
-    is judged on the 300 ms before and after the group, skipping 50 ms next to it."""
+    Rule (rev 4, 2026-10-31):
+    - a candidate is an impact peak with |a| - 1 > 2.5 g. There is no length limit any more: the motion
+      towards the palm can itself reach ~2.4 g, so the spike above 1.5 g lasted 43 ms
+      (10-31-test1, 13.88 s) and the old "<= 40 ms" rule missed it.
+    - the impact must stop the rotation: the minimum |gyro| in the 20 ms after the peak is under half the
+      maximum in the 30 ms before it (seen: 384 -> 50, 366 -> 118, 375 -> 45 dps). Arm movements and
+      bumps without a sudden stop (a false tap at 46.3 s in 10-31-test1: 2.6 g, gyro 175 -> 150) fail this.
+    - the frame often bounces off the palm (2nd spike ~200 ms later), so peaks closer than TAP_GROUP_MS
+      are one tap, timed at the first peak = the first contact seen in the video.
+    - the racket is not swinging: |gyro| < 300 dps in the 300 ms before and after the group, skipping
+      50 ms next to it (the impact jolts the gyro for a few ms)."""
     acc_mag = np.linalg.norm(rec.acc, axis=1)
     gyro_mag = np.linalg.norm(rec.gyro, axis=1)
-    spikes = []   # (start, end, peak row) of short spikes
-    for s, e in runs(np.abs(acc_mag - 1) > 1.5, merge_gap=20):
-        if e - s <= 40:                     # longer than 40 ms: a movement, not an impact
-            spikes.append((s, e, s + int(np.argmax(acc_mag[s:e + 1]))))
+    peaks = [s + int(np.argmax(acc_mag[s:e + 1])) for s, e in runs(acc_mag - 1 > 2.5, merge_gap=20)]
 
     groups = []
-    for sp in spikes:
-        if groups and sp[0] - groups[-1][-1][1] < TAP_GROUP_MS:
-            groups[-1].append(sp)
+    for p in peaks:
+        if groups and p - groups[-1][-1] < TAP_GROUP_MS:
+            groups[-1].append(p)
         else:
-            groups.append([sp])
+            groups.append([p])
 
     taps = []
     for g in groups:
-        first, last = g[0][0], g[-1][1]
+        first, last = g[0], g[-1]
         before = gyro_mag[max(0, first - 300):max(0, first - 50)]
         after = gyro_mag[last + 50:last + 300]
         if max(before.max(initial=0), after.max(initial=0)) > 300:   # part of a swing, not a deliberate tap
             continue
-        strong = [p for _, _, p in g if acc_mag[p] - 1 > 2.5]
-        if strong:
-            taps.append(strong[0])
+        if gyro_mag[first:first + 20].min() < 0.5 * gyro_mag[max(0, first - 30):first + 1].max():
+            taps.append(first)
     return taps

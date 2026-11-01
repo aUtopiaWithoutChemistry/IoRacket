@@ -23,19 +23,19 @@ class VideoPanel(QtWidgets.QWidget):
         self.video = QVideoWidget()
         self.player.setVideoOutput(self.video)
 
-        self.choose_btn = QtWidgets.QPushButton("Link video… / 选择视频…", clicked=lambda: self.choose_requested.emit())
-        self.play_btn = QtWidgets.QPushButton("Play / 播放", clicked=self.toggle_play)
-        prev_btn = QtWidgets.QPushButton("◀ 1 frame / 帧", clicked=lambda: self.step(-1))
-        next_btn = QtWidgets.QPushButton("1 frame / 帧 ▶", clicked=lambda: self.step(1))
+        self.choose_btn = QtWidgets.QPushButton("Link video…", clicked=lambda: self.choose_requested.emit())
+        self.play_btn = QtWidgets.QPushButton("Play", clicked=self.toggle_play)
+        prev_btn = QtWidgets.QPushButton("◀ 1 frame", clicked=lambda: self.step(-1))
+        next_btn = QtWidgets.QPushButton("1 frame ▶", clicked=lambda: self.step(1))
         self.speed_combo = QtWidgets.QComboBox()
         self.speed_combo.addItems(SPEEDS)
-        self.speed_combo.setToolTip("Playback speed (slow motion) / 播放速度(慢放)")
+        self.speed_combo.setToolTip("Playback speed (slow motion)")
         self.speed_combo.currentTextChanged.connect(lambda name: self.player.setPlaybackRate(SPEEDS[name]))
         self.slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.slider.sliderMoved.connect(lambda ms: self.seek(ms / 1000))
         self.time_label = QtWidgets.QLabel("—")
-        mark_start = QtWidgets.QPushButton("This frame = start tap / 开始敲击", clicked=lambda: self.tap_marked.emit(0, self.position()))
-        mark_end = QtWidgets.QPushButton("This frame = end tap / 结束敲击", clicked=lambda: self.tap_marked.emit(1, self.position()))
+        mark_start = QtWidgets.QPushButton("This frame = start tap", clicked=lambda: self.tap_marked.emit(0, self.position()))
+        mark_end = QtWidgets.QPushButton("This frame = end tap", clicked=lambda: self.tap_marked.emit(1, self.position()))
 
         seek_row = QtWidgets.QHBoxLayout()
         seek_row.addWidget(self.slider, stretch=1)
@@ -59,7 +59,7 @@ class VideoPanel(QtWidgets.QWidget):
         self.player.durationChanged.connect(lambda ms: self.slider.setRange(0, ms))
         self.player.positionChanged.connect(self._on_position)
         self.player.playbackStateChanged.connect(
-            lambda s: self.play_btn.setText("Pause / 暂停" if s == QMediaPlayer.PlayingState else "Play / 播放"))
+            lambda s: self.play_btn.setText("Pause" if s == QMediaPlayer.PlayingState else "Play"))
         self.player.metaDataChanged.connect(self._read_fps)
         # positionChanged is not frequent enough for a smooth data cursor; poll while playing
         self._timer = QtCore.QTimer(self, interval=30, timeout=lambda: self.position_changed.emit(self.position()))
@@ -68,7 +68,7 @@ class VideoPanel(QtWidgets.QWidget):
 
     def load(self, path):
         self.player.setSource(QtCore.QUrl.fromLocalFile(str(path)))
-        self.choose_btn.setText("Change video… / 更换视频…")
+        self.choose_btn.setText("Change video…")
 
     def has_video(self) -> bool:
         return not self.player.source().isEmpty()

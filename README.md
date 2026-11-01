@@ -78,7 +78,8 @@ python main.py        # tick "Simulator" to try it without the racket
 - [x] IMU saturation test (yes, a full swing clips +/-2000 deg/s and +/-16 g)
 - [x] Swing segmentation, per-swing metrics, replay
 - [x] Video sync (two frame taps) with slow-motion playback
-- [ ] v2: data analysis: racket orientation reconstruction, 3D swing replay, forehand/backhand
-- [ ] Higher-range IMU (custom PCBA)
-- [ ] v3: live phone camera stream recorded together with the IMU data
+- [ ] v2: remove the hardware limits and make recording easier (two parallel tracks)
+  - [ ] Hardware: custom minimal PCBA with an LSM6DSV320X (+/-4000 deg/s gyro, high-g accelerometer); if fast swings still clip, fill the clipped peaks by fitting, or add a second IMU 20-30 mm along the handle and recover the rotation rate from the centripetal acceleration difference
+  - [ ] Software: live iPhone camera (Continuity Camera) in the app, recorded together with the IMU on the Mac clock: no sync taps, recording can start mid-rally
+- [ ] v3/v4: expert swing database, two-camera calibration, 3D racket trajectory reconstruction, stroke analysis (forehand/backhand)
 - [ ] Coach labels -> badminton coaching feedback
